@@ -4,8 +4,7 @@ from PIL import Image
 import io
 
 # ---- CONFIG ----
-genai.configure(api_key="AIzaSyAZA2aZfWN-P6-3w6Oq7QOMGh99bxswD3o
-")  # Replace with your Gemini API key
+genai.configure(api_key="AIzaSyAZA2aZfWN-P6-3w6Oq7QOMGh99bxswD3o")  # Replace with your Gemini API key
 model = genai.GenerativeModel("gemini-pro-vision")
 
 st.set_page_config(page_title="Gemini Chat", layout="wide")
