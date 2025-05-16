@@ -5,57 +5,97 @@ import google.generativeai as genai
 GOOGLE_API_KEY = "AIzaSyAZA2aZfWN-P6-3w6Oq7QOMGh99bxswD3o"  # Replace with your actual API key
 genai.configure(api_key=GOOGLE_API_KEY)
 
-# ---- Initialize Gemini Model ----
-model = genai.GenerativeModel(model_name="models/gemini-1.5-pro-vision") # Use the vision model
+import streamlit as st
+import google.generativeai as genai
+from PIL import Image
+import io
 
-# ---- Streamlit UI ----
-st.set_page_config(page_title="Gemini Chatbot with Images", page_icon="🖼️")
-st.title("🖼️ Chat with Gemini 1.5 Pro Vision")
+# Set Streamlit page config
+st.set_page_config(page_title="Gemini 1.5 Pro Chat", page_icon="🤖", layout="centered")
 
-# ---- Initialize chat history ----
-if "chat" not in st.session_state:
-    st.session_state.chat = model.start_chat(history=[])
+st.title("🤖 Gemini 1.5 Pro Chat with Image Support")
 
-# ---- Display chat messages from history ----
-for msg in st.session_state.chat.history:
-    role = "user" if msg.role == "user" else "assistant"
-    with st.chat_message(role):
-        for part in msg.parts:  # Handle multiple parts (text and images)
-            if part.text:
-                st.markdown(part.text)
-            elif part.image:
-                st.image(part.image.decode())  # Decode image bytes
+# API Key input (store securely in session state)
+if "api_key" not in st.session_state:
+    st.session_state.api_key = ""
 
+api_key = st.text_input("Enter your Google Gemini API Key", type="password", value=st.session_state.api_key)
+if api_key:
+    st.session_state.api_key = api_key
 
-# ---- User input (Text and Image) ----
-prompt = st.chat_input("Enter text or upload an image...")
-uploaded_file = st.file_uploader("Upload an image", type=["jpg", "png", "jpeg"])
+if not api_key:
+    st.warning("Please enter your Google Gemini API key to continue.")
+    st.stop()
 
+# Configure Gemini
+genai.configure(api_key=api_key)
 
-if prompt or uploaded_file:
-    # Display user message (text and/or image)
-    with st.chat_message("user"):
-        if prompt:
-            st.markdown(prompt)
-        if uploaded_file:
-            st.image(uploaded_file)
+# Initialize chat history
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
 
+# Create Gemini 1.5 Pro chat model
+@st.cache_resource
+def get_chat_model():
+    return genai.GenerativeModel("gemini-1.5-pro")
 
-    # Send user input to Gemini
-    message_parts = []
-    if prompt:
-        message_parts.append(genai.messages.MessagePart(text=prompt))
-    if uploaded_file:
-        image_bytes = uploaded_file.read()
-        message_parts.append(genai.messages.MessagePart(image=image_bytes))
+model = get_chat_model()
 
-    response = st.session_state.chat.send_message(*message_parts) # unpack parts
+# Image uploader
+uploaded_image = st.file_uploader("Upload an image (optional)", type=["png", "jpg", "jpeg"])
 
+# User input
+user_message = st.text_input("Your message:", key="user_message")
 
-    # Display Gemini response (text and/or image)
-    with st.chat_message("assistant"):
-        for part in response.parts:
-            if part.text:
-                st.markdown(part.text)
-            elif part.image:
-                st.image(part.image.decode())
+# Send button
+if st.button("Send", use_container_width=True):
+    if not user_message and not uploaded_image:
+        st.warning("Please enter a message or upload an image.")
+    else:
+        # Prepare content parts
+        content = []
+        if user_message:
+            content.append(user_message)
+        if uploaded_image:
+            image = Image.open(uploaded_image)
+            # Convert image to bytes for Gemini SDK
+            img_bytes = io.BytesIO()
+            image.save(img_bytes, format=image.format if image.format else "PNG")
+            img_bytes.seek(0)
+            content.append(
+                genai.types.content_types.Part(
+                    inline_data=genai.types.content_types.Blob(
+                        mime_type=uploaded_image.type,
+                        data=img_bytes.read()
+                    )
+                )
+            )
+
+        # Add user message to chat history
+        st.session_state.chat_history.append(("user", user_message, uploaded_image))
+
+        # Send to Gemini
+        try:
+            response = model.generate_content(content)
+            gemini_reply = response.text
+        except Exception as e:
+            gemini_reply = f"Error: {e}"
+
+        # Add Gemini reply to chat history
+        st.session_state.chat_history.append(("gemini", gemini_reply, None))
+
+# Display chat history
+for sender, message, img in st.session_state.chat_history:
+    if sender == "user":
+        st.markdown("**You:**")
+        if message:
+            st.markdown(message)
+        if img:
+            st.image(img, width=200)
+    else:
+        st.markdown("**Gemini:**")
+        st.markdown(message)
+
+st.markdown("---")
+st.caption("Built with Streamlit & Google Gemini 1.5 Pro")
+
