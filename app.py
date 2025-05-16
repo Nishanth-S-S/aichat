@@ -1,27 +1,29 @@
+
+
 import streamlit as st
 import google.generativeai as genai
 from PIL import Image
 import io
 
 # ---- CONFIG ----
-genai.configure(api_key="AIzaSyAZA2aZfWN-P6-3w6Oq7QOMGh99bxswD3o")  # Replace with your Gemini API key
-model = genai.GenerativeModel("gemini-pro-vision")
+genai.configure(api_key="AIzaSyAZA2aZfWN-P6-3w6Oq7QOMGh99bxswD3o")  # Replace with your actual API key
+model = genai.GenerativeModel("gemini-1.5-flash")  # Updated to 1.5 flash
 
-st.set_page_config(page_title="Gemini Chat", layout="wide")
-st.title("Gemini AI Chat with Image Support")
+st.set_page_config(page_title="Gemini Chat with Image", layout="wide")
+st.title("Gemini 1.5 Flash Chatbot (Text + Image)")
 
 # ---- SESSION STATE ----
 if "history" not in st.session_state:
     st.session_state.history = []
 
-# ---- INPUTS ----
+# ---- INPUT AREA ----
 with st.sidebar:
-    st.subheader("Your Prompt")
+    st.subheader("Input")
     user_input = st.text_area("Enter your message", height=150)
     uploaded_image = st.file_uploader("Upload an image (optional)", type=["png", "jpg", "jpeg"])
     send_btn = st.button("Send")
 
-# ---- RESPONSE HANDLING ----
+# ---- HANDLE SEND ----
 if send_btn and (user_input or uploaded_image):
     content = []
 
@@ -45,7 +47,7 @@ if send_btn and (user_input or uploaded_image):
     except Exception as e:
         st.error(f"Error: {e}")
 
-# ---- CHAT DISPLAY ----
+# ---- DISPLAY CHAT ----
 st.subheader("Conversation")
 for chat in st.session_state.history[::-1]:
     with st.container():
