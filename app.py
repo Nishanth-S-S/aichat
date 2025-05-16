@@ -1,12 +1,5 @@
 import streamlit as st
 import google.generativeai as genai
-
-# ---- API Key ----
-GOOGLE_API_KEY = "AIzaSyAZA2aZfWN-P6-3w6Oq7QOMGh99bxswD3o"  # Replace with your actual API key
-genai.configure(api_key=GOOGLE_API_KEY)
-
-import streamlit as st
-import google.generativeai as genai
 from PIL import Image
 import io
 
